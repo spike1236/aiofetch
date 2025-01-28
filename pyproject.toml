@@ -1,0 +1,23 @@
+[project]
+name = "asyncscrap"
+version = "1.0.0"
+dependencies = [
+]
+requires-python = ">=3.10"
+authors = [
+  {name = "Akram Rakhmetulla", email = "akram042006@gmail.com"}
+]
+maintainers = [
+  {name = "Akram Rakhmetulla", email = "akram042006@gmail.com"}
+]
+description = "Collection of different tools for async web scraping"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICEN[CS]E.*"]
+
+[tool.ruff]
+line-length = 88
+indent-width = 4
+
+[tool.ruff.lint]
+select = ["E", "W"]
