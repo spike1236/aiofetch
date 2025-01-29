@@ -125,7 +125,8 @@ class BatchProcessor:
             update_frequency=self.batch_size
         )
 
-    async def process_batches(self, processor_func: Callable[[List[Any]], Awaitable[None]]):
+    async def process_batches(self, processor_func: Callable[[List[Any]],
+                                                             Awaitable[None]]):
         """Process items in batches with progress tracking"""
         try:
             while True:
