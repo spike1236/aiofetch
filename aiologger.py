@@ -71,11 +71,11 @@ class ProgressTracker:
 
     def _log_progress(self, message: Optional[str] = None):
         """Log current progress with rate and ETA"""
-        elapsed = (datetime.now() - self.start_time).total_seconds()
-        rate = self.current / elapsed if elapsed > 0 else 0
+        elapsed = max(0.001, (datetime.now() - self.start_time).total_seconds())
+        rate = self.current / elapsed
 
         progress = (self.current / self.total) * 100
-        eta = (self.total - self.current) / rate if rate > 0 else 0
+        eta = (self.total - self.current) / max(0.001, rate)
 
         status = (
             f"Progress: {self.current}/{self.total} ({progress:.1f}%) "

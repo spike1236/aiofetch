@@ -125,51 +125,63 @@ class BatchProcessor:
             update_frequency=self.batch_size
         )
 
-    async def process_batches(self, processor_func: Callable[[List[Any]],
-                                                             Awaitable[None]]):
+    async def process_batches(self, processor_func: Callable[[List[Any]], Awaitable[None]]):
         """Process items in batches with progress tracking"""
-        while not self.queue.empty():
-            batch = []
-            try:
-                while len(batch) < self.batch_size and not self.queue.empty():
-                    item = await self.queue.get()
-                    batch.append(item)
+        try:
+            while True:
+                batch = []
+                try:
+                    for _ in range(self.batch_size):
+                        if self.queue.empty():
+                            break
+                        item = await self.queue.get()
+                        batch.append(item)
 
-                if not batch:
-                    break
+                    if not batch:
+                        break
 
-                await processor_func(batch)
+                    await processor_func(batch)
 
-                if self.progress:
-                    self.progress.update(len(batch))
+                    if self.progress:
+                        self.progress.update(len(batch))
 
-                for _ in batch:
-                    self.queue.task_done()
+                    for _ in batch:
+                        self.queue.task_done()
 
-                await asyncio.sleep(self.delay)
+                    await asyncio.sleep(self.delay)
 
-            except Exception as e:
-                self.logger.error(f"Batch processing error: {str(e)}")
-                for item in batch:
-                    await self.queue.put(item)
+                except Exception as e:
+                    self.logger.error(f"Batch processing error: {str(e)}")
+                    for item in batch:
+                        await self.queue.put(item)
+
+        except asyncio.CancelledError:
+            for item in batch:
+                await self.queue.put(item)
+            raise
 
 
 class RateLimiter:
     """Rate limiter for controlling request frequency"""
-    def __init__(self, requests_per_second: float = 1):
+    def __init__(self, requests_per_second: float = 1, timeout: float = 60):
         self.delay = 1.0 / requests_per_second
         self.last_request = 0
         self._session_usage_count = 0
         self._lock = asyncio.Lock()
+        self.timeout = timeout
 
     async def acquire(self) -> None:
         """Wait until rate limit allows next request"""
-        async with self._lock:
-            now = datetime.now().timestamp()
-            elapsed = now - self.last_request
-            if elapsed < self.delay:
-                await asyncio.sleep(self.delay - elapsed)
-            self.last_request = datetime.now().timestamp()
+        try:
+            async with asyncio.timeout(self.timeout):
+                async with self._lock:
+                    now = datetime.now().timestamp()
+                    elapsed = now - self.last_request
+                    if elapsed < self.delay:
+                        await asyncio.sleep(self.delay - elapsed)
+                    self.last_request = datetime.now().timestamp()
+        except asyncio.TimeoutError:
+            raise TimeoutError("Rate limiter timeout exceeded")
 
     async def __aenter__(self) -> 'RateLimiter':
         await self.acquire()
