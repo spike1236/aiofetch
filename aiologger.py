@@ -58,11 +58,11 @@ class ProgressTracker:
 
     def update(self, increment: int = 1, message: Optional[str] = None):
         """Update progress counter"""
-        if increment <= 0:
-            raise ValueError("Increment must be a positive integer")
+        if increment < 0:
+            raise ValueError("Increment must be a non-negative integer")
 
         self.current += increment
-        if self.current % self.frequency == 0 or self.current == self.total:
+        if increment == 0 or self.current % self.frequency == 0 or self.current == self.total:
             self._log_progress(message)
 
     def add_milestone(self, name: str):
