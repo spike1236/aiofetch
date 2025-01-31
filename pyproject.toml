@@ -1,5 +1,5 @@
 [project]
-name = "asyncscrap"
+name = "aiofetch"
 version = "1.0.0"
 dependencies = [
 ]
@@ -10,10 +10,14 @@ authors = [
 maintainers = [
   {name = "Akram Rakhmetulla", email = "akram042006@gmail.com"}
 ]
-description = "Collection of different tools for async web scraping"
+description = "Collection of different tools for async web scraping, crawling and parsing"
 readme = "README.md"
 license = "MIT"
 license-files = ["LICEN[CS]E.*"]
+
+[project.urls]
+Homepage = "https://github.com/spike1236/aiofetch"
+Issues = "https://github.com/spike1236/aiofetch/issues"
 
 [tool.ruff]
 line-length = 88

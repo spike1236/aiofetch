@@ -1,4 +1,4 @@
-# asyncscrap
+# aiofetch
 
 A Python toolkit for asynchronous web scraping, file handling, and logging utilities.
 
@@ -14,7 +14,7 @@ A Python toolkit for asynchronous web scraping, file handling, and logging utili
 ## Installation
 
 ```bash
-git clone https://github.com/spike1236/asyncscrap.git
+git clone https://github.com/spike1236/aiofetch.git
 pip install -r requirements.txt
 ```
 
@@ -40,7 +40,7 @@ pip install -r requirements.txt
 ## Usage Example
 
 ```python
-from asyncscrap import AsyncDownloader, MetadataExtractor
+from aiofetch import AsyncDownloader, MetadataExtractor
 
 # Initialize downloader
 downloader = AsyncDownloader(concurrent_limit=50)
