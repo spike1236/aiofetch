@@ -32,7 +32,7 @@ pip install -r requirements.txt
 
 ## Requirements
 
-- Python 3.10+
+- Python 3.9+
 - aiofiles
 - aiohttp
 - BeautifulSoup4

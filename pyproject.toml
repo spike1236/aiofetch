@@ -1,9 +1,12 @@
 [project]
 name = "aiofetch"
-version = "1.0.0"
+version = "0.0.2"
 dependencies = [
+  "aiohttp",
+  "bs4",
+  "aiofiles"
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.9"
 authors = [
   {name = "Akram Rakhmetulla", email = "akram042006@gmail.com"}
 ]
@@ -12,8 +15,17 @@ maintainers = [
 ]
 description = "Collection of different tools for async web scraping, crawling and parsing"
 readme = "README.md"
-license = "MIT"
-license-files = ["LICEN[CS]E.*"]
+license = {file = "LICENSE.md"}
+
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Framework :: AsyncIO",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
 
 [project.urls]
 Homepage = "https://github.com/spike1236/aiofetch"
