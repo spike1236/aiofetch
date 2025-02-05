@@ -18,7 +18,7 @@ class LoggerFactory:
     _loggers = set()
 
     @staticmethod
-    def create_logger(name: str, log_dir: str = LogConfig.LOG_DIR, console: bool = True,
+    def create_logger(name: str, log_dir: str = LogConfig.LOG_DIR, console: bool = False,
                       file_prefix: Optional[str] = None,
                       level: int = logging.INFO) -> logging.Logger:
         logger = logging.getLogger(name)
@@ -62,9 +62,7 @@ class ProgressTracker:
             raise ValueError("Increment must be a non-negative integer")
 
         self.current += increment
-        if increment == 0 or \
-           self.current % self.frequency == 0 or \
-           self.current == self.total:
+        if increment == 0 or self.current % self.frequency == 0 or self.current == self.total:
             self._log_progress(message)
 
     def add_milestone(self, name: str):
