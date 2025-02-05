@@ -37,8 +37,7 @@ A Python toolkit for asynchronous web scraping with built-in error tracking and 
 ## Installation
 
 ```bash
-git clone https://github.com/spike1236/aiofetch.git
-pip install -r requirements.txt
+pip install aiofetch
 ```
 
 ## Key Components
@@ -106,6 +105,9 @@ if __name__ == "__main__":
 
 MIT License - see LICENSE file for details
 
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request or Issue.
 
 ## Author
 
