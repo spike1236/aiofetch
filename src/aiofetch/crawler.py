@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 from datetime import datetime
 from typing import Optional, Set, List, Any, Callable, Awaitable
-from aiologger import LoggerFactory, ErrorTracker, ProgressTracker
+from logger import LoggerFactory, ErrorTracker, ProgressTracker
 
 
 class BaseCrawler:
