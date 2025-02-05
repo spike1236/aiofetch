@@ -65,6 +65,7 @@ class FileIO:
     def __init__(self):
         self.logger = LoggerFactory.create_logger('FileIO')
         self.error_tracker = ErrorTracker(self.logger)
+        self.path_handler = PathHandler()
         self._validate_initialization()
 
     def _validate_initialization(self) -> None:
@@ -138,61 +139,13 @@ class FileIO:
             )
             raise
 
+    def ensure_path(self, filepath: str) -> str:
+        """Ensure directory exists for given filepath"""
+        return self.path_handler.ensure_dir(os.path.dirname(filepath))
 
-class TSVHandler:
-    """TSV file handling utilities"""
-    def __init__(self, filepath: str):
-        self.filepath = filepath
-        self.logger = LoggerFactory.create_logger('TSVHandler')
-        self.error_tracker = ErrorTracker(self.logger)
-
-    def read_rows(self, skip_header: bool = True) -> Generator[List[str], None, None]:
-        """Read TSV rows as generator"""
-        try:
-            with open(self.filepath, 'r', encoding='utf-8') as f:
-                if skip_header:
-                    next(f)
-                for line in f:
-                    if line.strip():
-                        yield line.strip().split('\t')
-        except Exception as e:
-            self.error_tracker.log_error(
-                'tsv_read_error',
-                f"Failed to read TSV file: {str(e)}",
-                {'filepath': self.filepath}
-            )
-            raise
-
-    def write_rows(self, rows: List[List[str]], header: Optional[List[str]] = None):
-        """Write rows to TSV file"""
-        try:
-            with open(self.filepath, 'w', encoding='utf-8') as f:
-                if header:
-                    f.write('\t'.join(header) + '\n')
-                for row in rows:
-                    f.write('\t'.join(map(str, row)) + '\n')
-            self.logger.info(f"Successfully wrote TSV file: {self.filepath}")
-        except Exception as e:
-            self.error_tracker.log_error(
-                'tsv_write_error',
-                f"Failed to write TSV file: {str(e)}",
-                {'filepath': self.filepath}
-            )
-            raise
-
-    def append_row(self, row: List[str]) -> None:
-        """Append single row to TSV file"""
-        try:
-            with open(self.filepath, 'a', encoding='utf-8') as f:
-                f.write('\t'.join(map(str, row)) + '\n')
-            self.logger.info(f"Appended row to TSV file: {self.filepath}")
-        except Exception as e:
-            self.error_tracker.log_error(
-                'tsv_append_error',
-                f"Failed to append row to TSV file: {str(e)}",
-                {'filepath': self.filepath}
-            )
-            raise
+    def join_paths(self, *paths: str) -> str:
+        """Use PathHandler to join paths"""
+        return self.path_handler.join_paths(*paths)
 
 
 class MetadataExtractor:
@@ -201,6 +154,7 @@ class MetadataExtractor:
         self.cleaners = cleaners or {}
         self.logger = LoggerFactory.create_logger('MetadataExtractor')
         self.error_tracker = ErrorTracker(self.logger)
+        self.file_io = FileIO()
 
     def extract_from_html(
         self,
@@ -248,6 +202,17 @@ class MetadataExtractor:
                 cleaned[key] = value
         return cleaned
 
+    async def save_extracted_metadata(self, metadata: Dict[str, str], filepath: str):
+        """Save extracted metadata using FileIO"""
+        try:
+            self.file_io.save_json(metadata, filepath)
+        except Exception as e:
+            self.error_tracker.log_error(
+                'save_metadata_error',
+                f"Failed to save extracted metadata: {str(e)}",
+                {'filepath': filepath}
+            )
+
 
 class MetadataManager:
     """Manage metadata files and operations"""
@@ -257,21 +222,24 @@ class MetadataManager:
         self.index: Dict[str, List[str]] = defaultdict(list)
         self.logger = LoggerFactory.create_logger('MetadataManager')
         self.error_tracker = ErrorTracker(self.logger)
+        self.file_io = FileIO()
+        self.path_handler = PathHandler()
 
     def load_all(self, subdirs: Optional[List[str]] = None) -> None:
         """Load all metadata files from directory"""
         subdirs = subdirs or [d for d in os.listdir(self.base_dir)
-                            if os.path.isdir(os.path.join(self.base_dir, d))]
+                            if os.path.isdir(self.path_handler.join_paths(self.base_dir,
+                                                                          d))]
 
         for subdir in subdirs:
-            dir_path = os.path.join(self.base_dir, subdir)
+            dir_path = self.path_handler.join_paths(self.base_dir, subdir)
             if not os.path.isdir(dir_path):
                 continue
 
             for filename in os.listdir(dir_path):
                 if filename.endswith('.json'):
-                    filepath = os.path.join(dir_path, filename)
                     try:
+                        filepath = self.path_handler.join_paths(dir_path, filename)
                         with open(filepath, 'r', encoding='utf-8') as f:
                             data = json.load(f)
                             if 'id' in data:
@@ -300,34 +268,19 @@ class MetadataManager:
                 if self.cache[id].get(field) == value]
 
     def save_metadata(self, data: Dict[str, Any], subdir: Optional[str] = None) -> str:
-        """Save metadata to file"""
+        """Save metadata using FileIO"""
         if 'id' not in data:
-            self.error_tracker.log_error(
-                'validation_error',
-                "Metadata must contain 'id' field",
-                {'data': data}
-            )
             raise ValueError("Metadata must contain 'id' field")
 
-        save_dir = os.path.join(self.base_dir, subdir) if subdir else self.base_dir
-        os.makedirs(save_dir, exist_ok=True)
+        save_dir = self.path_handler.join_paths(self.base_dir, subdir or '')
+        self.path_handler.ensure_dir(save_dir)
 
-        filepath = os.path.join(save_dir, f"{data['id']:08d}.json")
-        try:
-            with open(filepath, 'w', encoding='utf-8') as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
+        filepath = self.path_handler.join_paths(save_dir, f"{data['id']:08d}.json")
+        self.file_io.save_json(data, filepath, ensure_dir=False)  # Already ensured
 
-            self.cache[data['id']] = data
-            self._index_metadata(data)
-            self.logger.info(f"Saved metadata to {filepath}")
-            return filepath
-        except Exception as e:
-            self.error_tracker.log_error(
-                'save_error',
-                f"Failed to save metadata: {str(e)}",
-                {'filepath': filepath}
-            )
-            raise
+        self.cache[data['id']] = data
+        self._index_metadata(data)
+        return filepath
 
 
 class ContentParser:
@@ -335,6 +288,8 @@ class ContentParser:
     def __init__(self):
         self.logger = LoggerFactory.create_logger('ContentParser')
         self.error_tracker = ErrorTracker(self.logger)
+        self.metadata_extractor = MetadataExtractor()
+        self.file_io = FileIO()
 
     @staticmethod
     def extract_links(
@@ -401,3 +356,14 @@ class ContentParser:
                 {'selector': selector}
             )
             return []
+
+    async def save_extracted_content(self, content: Dict[str, Any], filepath: str):
+        """Save extracted content using FileIO"""
+        try:
+            self.file_io.save_json(content, filepath)
+        except Exception as e:
+            self.error_tracker.log_error(
+                'content_save_error',
+                f"Failed to save extracted content: {str(e)}",
+                {'filepath': filepath}
+            )
