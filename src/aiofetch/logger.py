@@ -51,7 +51,7 @@ class ProgressTracker:
     """Track progress of long-running operations"""
     def __init__(self, logger: logging.Logger, total: int, update_frequency: int = 100):
         self.logger = logger
-        self.total = total
+        self.total = max(1, total)  # Ensure total is at least 1
         self.current = 0
         self.frequency = update_frequency
         self.start_time = datetime.now()
@@ -75,13 +75,15 @@ class ProgressTracker:
         elapsed = max(0.001, (datetime.now() - self.start_time).total_seconds())
         rate = self.current / elapsed
 
-        progress = (self.current / self.total) * 100
-        eta = (self.total - self.current) / max(0.001, rate)
-
-        status = (
-            f"Progress: {self.current}/{self.total} ({progress:.1f}%) "
-            f"Rate: {rate:.1f} items/sec ETA: {eta:.0f}s"
-        )
+        if self.total > 0:
+            progress = (self.current / self.total) * 100
+            eta = (self.total - self.current) / max(0.001, rate)
+            status = (
+                f"Progress: {self.current}/{self.total} ({progress:.1f}%) "
+                f"Rate: {rate:.1f} items/sec ETA: {eta:.0f}s"
+            )
+        else:
+            status = f"Progress: {self.current} items - Rate: {rate:.1f} items/sec"
 
         if message:
             status = f"{status} - {message}"

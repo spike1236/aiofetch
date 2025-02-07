@@ -192,22 +192,34 @@ class MetadataExtractor:
     def extract_from_html(
         self,
         html: Union[str, BeautifulSoup],
-        selectors: Dict[str, Union[str, Tuple[str, str]]]
+        selectors: Dict[str, Union[str, Tuple]]
     ) -> Dict[str, str]:
         """Extract metadata using CSS selectors"""
         try:
             soup = BeautifulSoup(html, 'html.parser') if isinstance(html, str) else html
             metadata = {}
-
             for key, selector_info in selectors.items():
                 if isinstance(selector_info, str):
                     if elem := soup.select_one(selector_info):
                         metadata[key] = elem.text.strip()
                 elif isinstance(selector_info, tuple):
-                    selector, attribute = selector_info
-                    if elem := soup.select_one(selector):
-                        metadata[key] = elem.get(attribute, '').strip()
-
+                    if len(selector_info) == 2:
+                        selector, attribute = selector_info
+                        if elem := soup.select_one(selector):
+                            metadata[key] = elem.get(attribute, '').strip()
+                    elif len(selector_info) >= 3:
+                        # Supports additional parameters (e.g. index for list-type attributes)
+                        selector, attribute, index = selector_info[:3]
+                        if elem := soup.select_one(selector):
+                            attr_value = elem.get(attribute, '')
+                            if isinstance(attr_value, list) and len(attr_value) > index:
+                                metadata[key] = attr_value[index]
+                            elif isinstance(attr_value, str):
+                                # If attribute is a string, try splitting by whitespace as a fallback
+                                parts = attr_value.split()
+                                metadata[key] = parts[index] if len(parts) > index else ''
+                            else:
+                                metadata[key] = ''
             return self._clean_metadata(metadata)
         except Exception as e:
             self.error_tracker.log_error(

@@ -167,27 +167,27 @@ class RateLimiter:
     def __init__(self, requests_per_second: float = 1, timeout: float = 60):
         self.delay = 1.0 / requests_per_second
         self.last_request = 0
-        self._session_usage_count = 0
         self._lock = asyncio.Lock()
         self.timeout = timeout
 
     async def acquire(self) -> None:
         """Wait until rate limit allows next request"""
         try:
-            async with asyncio.timeout(self.timeout):
+            async def _acquire():
                 async with self._lock:
                     now = datetime.now().timestamp()
                     elapsed = now - self.last_request
                     if elapsed < self.delay:
                         await asyncio.sleep(self.delay - elapsed)
                     self.last_request = datetime.now().timestamp()
+            
+            await asyncio.wait_for(_acquire(), self.timeout)
         except asyncio.TimeoutError:
             raise TimeoutError("Rate limiter timeout exceeded")
 
-    async def __aenter__(self) -> 'RateLimiter':
+    async def __aenter__(self):
         await self.acquire()
-        self._session_usage_count += 1
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
-        self._session_usage_count -= 1
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        pass
