@@ -16,7 +16,7 @@ from .crawler import (
     BatchProcessor,
     RateLimiter
 )
-from logger import (
+from .logger import (
     LoggerFactory,
     ErrorTracker,
     ProgressTracker

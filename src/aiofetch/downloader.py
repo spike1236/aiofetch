@@ -5,7 +5,7 @@ import os
 from aiofiles.os import makedirs
 from datetime import datetime
 from typing import List, Tuple
-from logger import LoggerFactory, ErrorTracker, ProgressTracker
+from .logger import LoggerFactory, ErrorTracker, ProgressTracker
 
 
 class AsyncDownloader:

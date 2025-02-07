@@ -7,7 +7,7 @@ from typing import Optional, Union, AsyncGenerator, Generator, Callable
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from collections import defaultdict
-from logger import LoggerFactory, ErrorTracker
+from .logger import LoggerFactory, ErrorTracker
 
 
 class PathHandler:
