@@ -1,5 +1,4 @@
 import pytest
-from bs4 import BeautifulSoup
 from aiofetch.utils import ContentParser
 
 

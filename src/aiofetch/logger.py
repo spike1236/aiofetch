@@ -18,7 +18,8 @@ class LoggerFactory:
     _loggers = set()
 
     @staticmethod
-    def create_logger(name: str, log_dir: str = LogConfig.LOG_DIR, console: bool = False,
+    def create_logger(name: str, log_dir: str = LogConfig.LOG_DIR,
+                      console: bool = False,
                       file_prefix: Optional[str] = None,
                       level: int = logging.INFO) -> logging.Logger:
         logger = logging.getLogger(name)

@@ -63,39 +63,52 @@ pip install aiofetch
 import asyncio
 from aiofetch import (
     AsyncDownloader,
+    BaseCrawler,
+    ContentParser,  
     MetadataExtractor,
-    ContentParser,
-    FileIO
+    FileIO,
+    RateLimiter
 )
+
 
 async def main():
     # Initialize components
-    downloader = AsyncDownloader(concurrent_limit=20)
+    crawler = BaseCrawler("https://example.com", concurrent_limit=5)
+    downloader = AsyncDownloader(concurrent_limit=10)
     parser = ContentParser()
-    file_io = FileIO()
-    
-    # Download files
-    urls = [
-        ("https://example.com/file1.pdf", "downloads/file1.pdf"),
-        ("https://example.com/file2.pdf", "downloads/file2.pdf")
-    ]
-    await downloader.download_batch(urls)
-    
-    # Parse HTML content
-    html = """<html><body>
-        <h1>Title</h1>
-        <img src="image.jpg" alt="Test">
-    </body></html>"""
-    
-    # Extract metadata
     extractor = MetadataExtractor()
-    metadata = extractor.extract_from_html(html, {
-        'title': 'h1',
-        'images': ('img', 'src')
-    })
-    
-    # Save results
-    await file_io.save_json(metadata, 'output/metadata.json')
+    file_io = FileIO()
+    rate_limiter = RateLimiter(requests_per_second=2)
+
+    async with crawler:
+        # Fetch and parse page
+        html = await crawler.fetch_page("https://example.com/products")
+        
+        if html:
+            # Extract links and metadata
+            links = parser.extract_links(html, base_url=crawler.base_url)
+            metadata = extractor.extract_from_html(html, {
+                'title': 'h1.product-title',
+                'price': ('.price', 'data-amount'),
+                'description': 'meta[name="description"]',
+                'images': ('img.product-image', 'src')
+            })
+
+            # Download images with rate limiting
+            image_urls = [(img['url'], f"images/{i}.jpg") 
+                         for i, img in enumerate(metadata.get('images', []))]
+            
+            async with rate_limiter:
+                await downloader.download_batch(image_urls)
+
+            # Save extracted data
+            await file_io.write_json(metadata, 'data/product_metadata.json')
+            
+            # Results:
+            print(f"Processed {len(links)} links")
+            print(f"Downloaded {downloader.downloaded} images")
+            print(f"Saved metadata to data/product_metadata.json")
+
 
 if __name__ == "__main__":
     asyncio.run(main())

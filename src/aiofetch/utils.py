@@ -98,6 +98,37 @@ class FileIO:
             )
             raise
 
+    async def write(self, filepath: str, content: str, encoding: str = 'utf-8') -> None:
+        """Write content to file asynchronously"""
+        try:
+            async def string_generator():
+                yield content.encode(encoding)
+
+            await self.write_chunks(filepath, string_generator())
+            self.logger.info(f"Successfully wrote text to file: {filepath}")
+        except Exception as e:
+            self.error_tracker.log_error(
+                'text_write_error',
+                f"Failed to write text: {str(e)}",
+                {'filepath': filepath}
+            )
+            raise
+
+    async def append(self, filepath: str, content: str, encoding: str = 'utf-8') -> None:
+        """Append content to file asynchronously"""
+        try:
+            await aiofiles.os.makedirs(os.path.dirname(filepath), exist_ok=True)
+            async with aiofiles.open(filepath, 'a', encoding=encoding) as f:
+                await f.write(content)
+            self.logger.info(f"Successfully appended text to file: {filepath}")
+        except Exception as e:
+            self.error_tracker.log_error(
+                'text_append_error',
+                f"Failed to append text: {str(e)}",
+                {'filepath': filepath}
+            )
+            raise
+
     async def read_lines(
         self,
         filepath: str,
@@ -118,23 +149,25 @@ class FileIO:
             )
             raise
 
-    def save_json(
+    async def write_json(
         self,
         data: Union[Dict[str, Any], List[Any]],
         filepath: str,
         ensure_dir: bool = True
     ) -> None:
-        """Save data as JSON"""
+        """Write data as JSON file asynchronously"""
         try:
             if ensure_dir:
-                os.makedirs(os.path.dirname(filepath), exist_ok=True)
-            with open(filepath, 'w', encoding='utf-8') as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
-            self.logger.info(f"Successfully saved JSON to: {filepath}")
+                await aiofiles.os.makedirs(os.path.dirname(filepath), exist_ok=True)
+
+            json_str = json.dumps(data, ensure_ascii=False, indent=2)
+            await self.write(filepath, json_str)
+
+            self.logger.info(f"Successfully wrote JSON to: {filepath}")
         except Exception as e:
             self.error_tracker.log_error(
-                'json_save_error',
-                f"Failed to save JSON: {str(e)}",
+                'json_write_error',
+                f"Failed to write JSON: {str(e)}",
                 {'filepath': filepath}
             )
             raise
@@ -205,7 +238,7 @@ class MetadataExtractor:
     async def save_extracted_metadata(self, metadata: Dict[str, str], filepath: str):
         """Save extracted metadata using FileIO"""
         try:
-            self.file_io.save_json(metadata, filepath)
+            await self.file_io.write_json(metadata, filepath)
         except Exception as e:
             self.error_tracker.log_error(
                 'save_metadata_error',
@@ -360,7 +393,7 @@ class ContentParser:
     async def save_extracted_content(self, content: Dict[str, Any], filepath: str):
         """Save extracted content using FileIO"""
         try:
-            self.file_io.save_json(content, filepath)
+            await self.file_io.write_json(content, filepath)
         except Exception as e:
             self.error_tracker.log_error(
                 'content_save_error',
